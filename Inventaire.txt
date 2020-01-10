@@ -1,0 +1,9 @@
+4
+
+Chocolat_Bar 0.75
+Chips 1.00
+Pop 1.25
+Candy 0.75
+
+
+Le 4 signifie le nombre d'items, la lecture fait avec le nom en string et le prix
