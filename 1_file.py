@@ -1,2 +1,0 @@
-#hello Ethan !
-# - De Emile
