@@ -48,7 +48,7 @@ def initialize_db(db_file):
 		re_initialize = int(input("\t1 pour oui, 0 pour non: "))
 		while re_initialize != 1 and re_initialize != 0:
 			re_initialize = int(input("Veuillez entrez 1 pour oui, 0 pour non: "))
-
+		print("")
 
 		if not re_initialize:
 			return
@@ -145,8 +145,51 @@ def add_stock(c):
 		
 
 
-		
+#Fonction qui montre tous les options de l'utilisateur
+#Input:
+#	aucun
+#Output:
+#	aucun
+def print_main_menu():	
+	print("Veuillez selectionner une des options suivantes")
+	print("=================================================")
+	print("\t[1] Voir les items en stock.")
+	print("\t[2] Voir les items pas en stock.")
+	print("\t[3] Voir tous les items.")
+	print("\t[4] Ajouter de l'inventaire.")
+	print("\t[0] Arreter.")
+	print("=================================================\n")
+
+
+
+
+#Fonction qui montre les items qui sont en stock
+#Input:
+#	c - La connection SQLite
+#	mode - Un string qui specifie les donnees a montrer
+#		(soit "en stock", "pas en stock", ou "" pour tous les items)
+#Output:
+#	aucun
+def list_inventory(c, mode):
 	
+	#Creating de la commande SQL
+	query_string = "SELECT name, price, amount FROM stock"
+	if mode == "en stock":
+		query_string += " WHERE amount > 0"
+	elif mode == "pas en stock":
+		query_string += " WHERE amount = 0"
+
+	#Retrouver les ranges
+	c.execute(query_string)
+	data = c.fetchall()
+
+	#Montrer les donnees
+	print("Voici les items %s:" % mode)
+	for i in range(len(data)):
+		print("\t%-12s\t$%-12.2f\t(x%d)\n" % (data[i][0], data[i][1], data[i][2]))
+
+
+
 
 if __name__ == '__main__':
 	#Creer le fichier pour utiliser
@@ -159,7 +202,28 @@ if __name__ == '__main__':
 	#Creation de la connection
 	conn = sqlite3.connect(db_file)
 	c = conn.cursor()
-	add_stock(c)
 
+	
+	stop = False
+	while not stop:
+		#Montrer le menu principal
+		print_main_menu()
+		option = int(input(">"))
+
+		#Determine l'option choisi
+		if option == 0:
+			stop = True
+		elif option == 1:
+			list_inventory(c, "en stock")
+		elif option == 2:
+			list_inventory(c, "pas en stock")
+		elif option == 3:
+			list_inventory(c, "")
+		elif option == 4:
+			add_stock(c)
+		else:
+			print("Cet option n'est pas valide.\n")
+
+	#Fermeture de la connection
 	conn.commit()
 	conn.close()
