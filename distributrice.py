@@ -157,6 +157,7 @@ def print_main_menu():
 	print("\t[2] Voir les items pas en stock.")
 	print("\t[3] Voir tous les items.")
 	print("\t[4] Ajouter de l'inventaire.")
+	print("\t[5] Placer une commande.")
 	print("\t[0] Arreter.")
 	print("=================================================\n")
 
@@ -191,6 +192,80 @@ def list_inventory(c, mode):
 
 
 
+#Fonction pour placer une commande
+#Input:
+#	c - La connection SQLite
+#Output:
+#	aucun
+def place_order(c):
+	#Montrer les items en stock
+	list_inventory(c, "en stock")
+
+	#Determiner l'item a acheter
+	all_names = get_all(c, "names")
+	name = input("Entrez le nom de l'item que vous voullez acheter: ")
+	while not name in all_names:
+		print("Cet item n'est pas une option.")
+		name = input("Entrez le nom de l'item que vous voullez acheter: ")
+
+	#Determiner le nombre de cet item en stock ainsi que le prix
+	query_string = "SELECT amount, price FROM stock WHERE name = '%s'" % name
+	c.execute(query_string)
+	data = c.fetchall()
+	amount = data[0][0]
+	price = data[0][1]
+
+	#Determiner le nombre pour la commande
+	n = int(input("Entrez le nombre d'item que vous voulez acheter: "))
+	while (n <= 0 or n > amount):
+		print("Ce nombre d'items n'est pas possible.")
+		n = int(input("Entrez le nombre d'item que vous voulez acheter: "))
+
+	#Determiner le prix pour la commande
+	total_cost = price*n
+	payment = float(input("Le prix de la commande est $%.2f. (Entrez 0 pour annuler)\nEntrez votre paiment: " % total_cost))
+	while (payment < total_cost and payment != 0):
+		print("Ce n'est pas assez d'argent.")
+		payment = float(input("Le prix de la commande est $%.2f. (Entrez 0 pour annuler)\nEntrez votre paiment: " % total_cost))
+
+	#Check si la commande est annule
+	if payment == 0:
+		print("Commande annule.")
+		return
+
+	#Calculer et montrer la monnaie
+	change = payment - total_cost;
+	print("Voici votre monnaie: $%.2f\nMerci!" % change)
+
+	#Mis a jour de la base de donnees
+	new_amount = amount - n
+	update_string = "UPDATE stock SET amount = %d WHERE name = '%s'"
+	c.execute(update_string % (new_amount, name))
+
+
+
+
+def get_all(c, mode):
+	#Commande SQL
+	query_string = "SELECT %s FROM stock"
+
+	#Determiner ce qu'on cherche
+	if mode == "names":
+		c.execute(query_string % "name")
+	elif mode == "amounts":
+		c.execute(query_string % "amount")
+	elif mode == "prices":
+		c.execute(query_string % "price")
+
+	#Creer une list des donnees trouves
+	result = c.fetchall()
+	data = []
+	for i in range(len(result)):
+		data.append(result[i][0])
+
+	return data
+
+
 if __name__ == '__main__':
 	#Creer le fichier pour utiliser
 	db_path = "C:\\Users\\Owner\\Documents\\GitHub"
@@ -221,8 +296,12 @@ if __name__ == '__main__':
 			list_inventory(c, "")
 		elif option == 4:
 			add_stock(c)
+		elif option == 5:
+			place_order(c)
 		else:
 			print("Cet option n'est pas valide.\n")
+
+
 
 	#Fermeture de la connection
 	conn.commit()
