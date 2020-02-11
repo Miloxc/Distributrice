@@ -14,22 +14,10 @@ import os.path
 #Output:
 #	exists - Vrai si l'item existait deja
 def stock_item_exists(c, item_name):
-
 	#Retrouver tous les noms d'items
-	c.execute("SELECT name FROM stock")
-	names = c.fetchall()
-	num_names = len(names)
-
-	exists = False
-
-	#Verifier chaque nom
-	for i in range(num_names):
-		current_name = names[i][0]		
-		if current_name == item_name:
-			exists = True
-
+	names = get_all(c, 'names')
+	exists = True if item_name in names else False
 	return exists
-
 
 
 
@@ -306,3 +294,7 @@ if __name__ == '__main__':
 	#Fermeture de la connection
 	conn.commit()
 	conn.close()
+
+
+#On veut 1) La date 2 Le nom de l'item 3) Le montant de changement (+/-) 4) Le prix de l'item dans le temps de l'achat
+	#Creer la table 'stock'
