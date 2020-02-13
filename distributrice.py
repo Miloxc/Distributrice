@@ -3,6 +3,7 @@
 
 import sqlite3
 import os.path
+import datetime
 
 
 
@@ -28,6 +29,7 @@ def stock_item_exists(c, item_name):
 #Output: 
 #	aucun
 def initialize_db(db_file):
+
 
 	#Verifier si la base de donnees exist deja
 	if os.path.isfile(db_file):
@@ -69,13 +71,21 @@ def initialize_db(db_file):
 	
 
 	#Creer la table 'stock'
-	create_stock = """
+	create_stock_table = """
 		CREATE TABLE stock(
 		id integer PRIMARY KEY,
 		name text NOT NULL UNIQUE,
 		amount integer NOT NULL,
 		price REAL NOT NULL);"""
-	c.execute(create_stock)
+	create_report_table = """
+		CREATE TABLE report(
+		id integer PRIMARY KEY,
+		name text NOT NULL,
+		amount integer NOT NULL,
+		price real NOT NULL,
+		date TEXT NOT NULL)"""
+	c.execute(create_stock_table)
+	c.execute(create_report_table)
 
 
 	#Inserer les donnes initiales
@@ -83,6 +93,7 @@ def initialize_db(db_file):
 	for i in range(n): #Inserer chaque item
 		insert_query = insert_stock % (names[i], numbers[i], prices[i])
 		c.execute(insert_query)
+		create_report(c, names[i], numbers[i])
 
 	conn.commit()
 	conn.close()
@@ -124,11 +135,13 @@ def add_stock(c):
 			#Inserer le nouveau montant de stock
 			update_string = update_stock % (new_num, name)
 			c.execute(update_string)
+			create_report(c, name, number)
 		else:
 			#L'utilisateur entre le prix de chaque item
 			price = float(input("Entrez le prix par item: "))
 			insert_string = insert_stock % (name, number, price)
 			c.execute(insert_string)
+			create_report(c, name, number)
 
 		
 
@@ -229,6 +242,7 @@ def place_order(c):
 	new_amount = amount - n
 	update_string = "UPDATE stock SET amount = %d WHERE name = '%s'"
 	c.execute(update_string % (new_amount, name))
+	create_report(c, name, -1*n)
 
 
 
@@ -252,6 +266,21 @@ def get_all(c, mode):
 		data.append(result[i][0])
 
 	return data
+
+
+
+
+def create_report(c, name, amount):
+	time = datetime.datetime.now()
+	c.execute("SELECT price FROM stock WHERE name = '%s'" % name)
+	price = c.fetchall()
+	price = price[0][0]
+	insert_str = "INSERT INTO report (name, amount, price, date) VALUES ('%s', %d, %f, '%s')"
+	insert_str = insert_str % (name, amount, price, time)
+	c.execute(insert_str)
+
+
+
 
 
 if __name__ == '__main__':
