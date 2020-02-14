@@ -4,7 +4,7 @@
 import sqlite3
 import os.path
 import datetime
-
+import csv
 
 
 
@@ -159,6 +159,9 @@ def print_main_menu():
 	print("\t[3] Voir tous les items.")
 	print("\t[4] Ajouter de l'inventaire.")
 	print("\t[5] Placer une commande.")
+	print("\t[6] Creer un rapport de tous les achats.")
+	print("\t[7] Creer un rapport de toute l'inventaire ajoute.")
+	print("\t[8] Creer un rapport de tout les transactions.")
 	print("\t[0] Arreter.")
 	print("=================================================\n")
 
@@ -247,6 +250,14 @@ def place_order(c):
 
 
 
+#Fonction qui retruove toute une colonne de donnees
+#Input:
+#	c - La connection SQLite
+#	mode - 'name' pour la colonne name
+#		   'amount' pour la colonne amount
+#		   'price' pour la colonne price
+#Output:
+#	data - Une liste de toutes les donnees dans la colonne specifier
 def get_all(c, mode):
 	#Commande SQL
 	query_string = "SELECT %s FROM stock"
@@ -259,7 +270,7 @@ def get_all(c, mode):
 	elif mode == "prices":
 		c.execute(query_string % "price")
 
-	#Creer une list des donnees trouves
+	#Creer une liste des donnees trouves
 	result = c.fetchall()
 	data = []
 	for i in range(len(result)):
@@ -269,15 +280,72 @@ def get_all(c, mode):
 
 
 
-
+#Fonction qui cree une entree dans la base de donees 'report'
+#Input:
+#	c - La connection SQLite
+#	name - Le nom de l'item
+#	amount - Le nombre d'items ajoute
+#Output:
+#	aucun
 def create_report(c, name, amount):
+	#Trouver le temps actuel
 	time = datetime.datetime.now()
+
+	#Resortir le prix de l'item choisi
 	c.execute("SELECT price FROM stock WHERE name = '%s'" % name)
 	price = c.fetchall()
 	price = price[0][0]
+
+	#Inserer les donnees
 	insert_str = "INSERT INTO report (name, amount, price, date) VALUES ('%s', %d, %f, '%s')"
 	insert_str = insert_str % (name, amount, price, time)
 	c.execute(insert_str)
+
+
+
+
+#Fonction qui cree un rapport csv des transactions passe
+#Input:
+#	c - La connection SQLite
+#	mode - 'added' pour les items ajoutees
+#		   'removed' pour les items enlevees
+#		   *mode sera dans le nom du fichier csv
+#Outpur:
+#	aucun
+def create_csv(c, mode):
+	#Creation de la commande SQLite
+	query_str = "SELECT name, amount, price, date FROM report"
+	if mode == 'added':
+		query_str += " WHERE amount > 0"
+	elif mode == 'removed':
+		query_str += " WHERE amount < 0"
+
+	#Trouver les donnees de la table report
+	c.execute(query_str)
+	result = c.fetchall()
+
+	names = []
+	amounts = []
+	prices = []
+	dates = []
+
+	for i in range(len(result)):
+		names.append(result[i][0])
+		amounts.append(result[i][1])
+		prices.append(result[i][2])
+		dates.append(result[i][3])
+
+	#Creer le nom du fichier
+	time_stamp = datetime.datetime.now()
+	filename = time_stamp.strftime('%b') + time_stamp.strftime('%d')
+	filename = filename + '_' + time_stamp.strftime('%Y') + mode + '.csv'
+
+	#Ecrire les donnees au fichier
+	with open(filename, 'w', newline = '') as csvFile:
+		writer = csv.writer(csvFile)
+		writer.writerow(['Name', 'Amount', 'Price', 'Date'])
+		for name, amount, price, date in zip(names, amounts, prices, dates):
+			writer.writerow([name, amount, price, date])
 
 
 
@@ -315,6 +383,12 @@ if __name__ == '__main__':
 			add_stock(c)
 		elif option == 5:
 			place_order(c)
+		elif option == 6:
+			create_csv(c, 'added')
+		elif option == 7:
+			create_csv(c, 'removed')
+		elif option == 8:
+			create_csv(c, 'all')
 		else:
 			print("Cet option n'est pas valide.\n")
 
@@ -323,7 +397,3 @@ if __name__ == '__main__':
 	#Fermeture de la connection
 	conn.commit()
 	conn.close()
-
-
-#On veut 1) La date 2 Le nom de l'item 3) Le montant de changement (+/-) 4) Le prix de l'item dans le temps de l'achat
-	#Creer la table 'stock'
